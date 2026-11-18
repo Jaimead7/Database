@@ -1,0 +1,87 @@
+# MIT License
+
+# Copyright (c) 2026 Jaime Álvarez Díaz
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the “Software”), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+# of the Software, and to permit persons to whom the Software is furnished to do
+# so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres
+    init: true
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    env_file:
+      - path: .env.postgres
+        required: true
+    secrets:
+      - pg_password
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    init: true
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5050:80"
+    env_file:
+      - path: .env.pgadmin
+        required: true
+    secrets:
+      - pgadmin_password
+    networks:
+      - db-network
+
+
+secrets:
+  pg_password:
+    file: ./secrets/pg_password.txt
+  pgadmin_password:
+    file: ./secrets/pgadmin_password.txt
+
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./postgres_data
+    external: false
+    labels:
+      - "description=PostgreSQL data volume."
+
+
+networks:
+  db-network:
+    name: db-network
+    driver: bridge

@@ -1,0 +1,17 @@
+# Project files
+delete*
+
+# Tools
+env/
+.env*
+!.env.example
+.pytest_cache/
+
+# Git
+.git/
+
+# ide
+.vscode/
+.idea/
+*.swp
+*.swo
